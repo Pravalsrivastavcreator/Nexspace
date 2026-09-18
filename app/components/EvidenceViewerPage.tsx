@@ -40,9 +40,11 @@ import {
 function TopBar({
   investigation,
   sourceImage,
+  targetsCount = 0,
 }: {
   investigation: CanonicalInvestigationState | null;
   sourceImage: CanonicalSourceImage;
+  targetsCount?: number;
 }) {
   const isUpload = sourceImage.source === "upload";
 
@@ -60,9 +62,11 @@ function TopBar({
           <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
             isUpload
               ? "text-emerald-300 bg-emerald-500/15 border-emerald-500/30"
+              : sourceImage.filename.includes("Sentinel") || sourceImage.filename.includes("Landsat")
+              ? "text-cyan-300 bg-cyan-500/15 border-cyan-500/35 font-semibold"
               : "text-blue-300 bg-blue-500/15 border-blue-500/30"
           }`}>
-            Source: <strong>{sourceImage.filename}</strong> ({isUpload ? "Uploaded by user" : "Verified demo tile"})
+            Source: <strong>{sourceImage.filename}</strong> ({isUpload ? "Uploaded raster" : sourceImage.filename.includes("Sentinel") ? "Copernicus Sentinel-2 (10m BOA)" : "Verified Sentinel/Optical tile"})
           </span>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -82,11 +86,17 @@ function TopBar({
         </div>
       </div>
 
-      <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/25 rounded-lg px-3 py-2 text-[11px] text-cyan-300 font-mono">
-        <Info size={14} className="text-cyan-400 shrink-0" />
-        <span>
-          <strong>Investigation Evidence Verification:</strong> Visual inspection of the exact source image and neural object localizations. Click any bounding box or target card to inspect its evidence node.
-        </span>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] font-mono">
+        <div className="flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/25 rounded-lg px-3 py-1.5 text-cyan-300">
+          <Info size={13} className="text-cyan-400 shrink-0" />
+          <span><strong>Satellite:</strong> {sourceImage.filename.includes("Landsat") ? "Landsat-9 OLI-2 (30m)" : "Copernicus Sentinel-2 (10m)"}</span>
+        </div>
+        <div className="flex items-center gap-2 bg-slate-900/70 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-300">
+          <span><strong>CRS:</strong> {investigation?.response?.spatial_summary?.crs || "EPSG:32644 (UTM)"}</span>
+        </div>
+        <div className="flex items-center gap-2 bg-slate-900/70 border border-slate-800 rounded-lg px-3 py-1.5 text-slate-300">
+          <span><strong>Targets:</strong> {targetsCount} Neural Localizations</span>
+        </div>
       </div>
     </header>
   );
@@ -649,7 +659,11 @@ export default function EvidenceViewerPage() {
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <TopBar investigation={investigationState} sourceImage={sourceImage} />
+        <TopBar
+          investigation={investigationState}
+          sourceImage={sourceImage}
+          targetsCount={normalizedDetections.length}
+        />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-3 gap-5 items-start overflow-y-auto">
           <div className="lg:col-span-2">

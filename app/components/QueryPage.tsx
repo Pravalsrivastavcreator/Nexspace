@@ -251,23 +251,27 @@ function QueryBar({
 // ----------------------------------------------------------------
 function SuggestionChips({ onSelect }: { onSelect: (s: string) => void }) {
   const suggestions = [
-    "Describe this image and locate the buildings",
-    "Locate the buildings",
-    "Describe this image",
-    "Is there water in this image?",
-    "Compare optical and SAR imagery",
+    "🛰️ Scan Gomti Nagar, Lucknow for recent changes",
+    "🌊 Marine Drive, Mumbai vessel analysis",
+    "🏢 Connaught Place, New Delhi building detection",
+    "🔍 Describe this image and locate the buildings",
+    "🎯 Locate the buildings",
+    "💧 Is there water in this image?",
   ];
 
   return (
     <div className="flex flex-wrap items-center gap-1.5 pt-1">
       <span className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">
-        Suggested:
+        Auto-Acquire &amp; Analyze:
       </span>
       {suggestions.map((s, idx) => (
         <button
           key={idx}
-          onClick={() => onSelect(s)}
-          className="text-[11px] bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-cyan-300 border border-slate-800/90 hover:border-cyan-500/30 px-2.5 py-1 rounded-md transition-all font-mono cursor-pointer"
+          onClick={() => {
+            const clean = s.replace(/^[^\w\s]+\s*/u, "");
+            onSelect(clean);
+          }}
+          className="text-[11px] bg-slate-900/80 hover:bg-cyan-500/15 text-slate-400 hover:text-cyan-300 border border-slate-800/90 hover:border-cyan-500/40 px-2.5 py-1 rounded-md transition-all font-mono cursor-pointer"
         >
           {s}
         </button>
@@ -1147,6 +1151,31 @@ export default function QueryPage() {
     setErrorMsg(null);
     setApiResult(null);
 
+    let activeSource = srcImage;
+
+    // If query has location name and user hasn't uploaded a manual file, trigger auto satellite acquisition
+    if (srcImage.source !== "upload") {
+      try {
+        setLoadingPhase("GEOCODING & ACQUIRING COPERNICUS SATELLITE AOI...");
+        const satRes = await fetch("/api/satellite/acquire", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: abortController.signal,
+          body: JSON.stringify({ query: qText })
+        });
+        if (satRes.ok) {
+          const satData = await satRes.json();
+          if (satData.sourceImage) {
+            activeSource = satData.sourceImage;
+            setCanonicalSource(satData.sourceImage);
+            setActiveSourceImage(satData.sourceImage);
+          }
+        }
+      } catch {
+        // Continue with current source if satellite endpoint fails
+      }
+    }
+
     let phaseIndex = 0;
     setLoadingPhase(phases[0]);
     const interval = setInterval(() => {
@@ -1154,7 +1183,7 @@ export default function QueryPage() {
       if (phaseIndex < phases.length) {
         setLoadingPhase(phases[phaseIndex]);
       }
-    }, 800);
+    }, 600);
 
     try {
       const res = await fetch("/api/query", {
@@ -1163,7 +1192,7 @@ export default function QueryPage() {
         signal: abortController.signal,
         body: JSON.stringify({
           query: qText,
-          optical_image: srcImage.dataUrl || undefined,
+          optical_image: activeSource.dataUrl || undefined,
           sar_image: sImg || undefined,
         }),
       });
@@ -1179,14 +1208,14 @@ export default function QueryPage() {
       const invState: CanonicalInvestigationState = {
         investigation_id: data.request_id || `INV-${Date.now()}`,
         query: qText,
-        source_image: srcImage,
+        source_image: activeSource,
         sar_image: sImg,
         selectedTargetId: null,
         timestamp: new Date().toISOString(),
         response: data,
       };
       setCurrentInvestigation(invState);
-      setActiveSourceImage(srcImage);
+      setActiveSourceImage(activeSource);
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
         return; // Clean cancellation
@@ -1208,8 +1237,12 @@ export default function QueryPage() {
     if (!sc.query) return;
     setActiveScenario(sc.id);
     setQuery(sc.query);
-    const targetSource = sc.source || canonicalSource;
-    if (sc.source) {
+    
+    // Preserve current source image if user has uploaded a real image or acquired satellite imagery
+    const isCustomActive = canonicalSource && (canonicalSource.source === "upload" || (canonicalSource.id && !canonicalSource.id.startsWith("src-demo-")));
+    const targetSource = isCustomActive ? canonicalSource : (sc.source || canonicalSource);
+    
+    if (!isCustomActive && sc.source) {
       updateSourceImage(sc.source);
     }
     if (sc.sarImage !== undefined) {

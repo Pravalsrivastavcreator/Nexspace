@@ -49,14 +49,27 @@ export const NEXSPACE_KNOWLEDGE: KnowledgeItem[] = [
     },
   },
 
-  // 2. Upload / Ingest
+  // 2. Automatic Satellite Acquisition & Ingest
+  {
+    id: "auto_satellite_acquisition",
+    category: "general",
+    keywords: ["automatic satellite", "copernicus", "sentinel", "landsat", "search location", "scan location", "lucknow", "mumbai", "delhi", "bengaluru", "how to get satellite image"],
+    question: "How does Automatic Satellite Imagery Acquisition work in NexSpace?",
+    summary: "NexSpace automatically acquires high-resolution satellite imagery from Copernicus Sentinel-2 (10m) with Landsat 8/9 fallback based on natural language location queries.",
+    detailedText: "You do NOT need to search or upload images manually. Simply type a query with any location name (e.g. *'Scan Gomti Nagar, Lucknow for recent changes'* or *'Locate buildings in Marine Drive, Mumbai'*). NexSpace automatically geocodes the location, calculates the Area of Interest (AOI), queries the Copernicus Sentinel-2 L2A archive (filtering for <15% cloud cover), and falls back to Landsat 9 if needed, feeding the AOI directly into the AI analysis pipeline.",
+    suggestedAction: {
+      type: "OPEN_QUERY",
+      label: "Try Automatic Satellite Query",
+      route: "/query",
+    },
+  },
   {
     id: "upload_guidance",
     category: "upload",
     keywords: ["upload", "how to upload", "where to upload", "ingest", "add image", "supported formats", "geotiff", "tiff", "png", "jpeg"],
-    question: "How do I upload satellite imagery?",
-    summary: "You can upload satellite imagery directly from the Upload Ingest page or choose from pre-loaded demo tiles.",
-    detailedText: "Go to the **Upload Ingest** page (/upload). You can drag and drop raster files (GeoTIFF, TIFF, PNG, JPEG, or ZIP bundles with multispectral bands like RGB, NIR, SWIR). NexSpace validates projections (e.g. EPSG:32651), extracts geospatial metadata, and registers the active source image across all analysis terminals.",
+    question: "How do I upload custom satellite imagery?",
+    summary: "You can upload custom satellite imagery rasters directly from the Upload Ingest page.",
+    detailedText: "Go to the **Upload Ingest** page (/upload). You can drag and drop custom raster files (GeoTIFF, TIFF, PNG, JPEG, or ZIP bundles with multispectral bands like RGB, NIR, SWIR). NexSpace validates projections (e.g. EPSG:32651), extracts geospatial metadata, and preserves the uploaded image across all analysis terminals without overriding.",
     suggestedAction: {
       type: "OPEN_UPLOAD",
       label: "Go to Upload Ingest",
