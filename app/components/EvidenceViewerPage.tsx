@@ -218,7 +218,11 @@ function EvidenceImage({
               src={sourceImage.dataUrl}
               alt={sourceImage.filename}
               className="w-full h-auto min-h-[500px] block select-none pointer-events-none"
-              style={{ width: "100%", height: "auto" }}
+              style={{
+                width: "100%",
+                height: "auto",
+                imageRendering: effectiveZoom > 1.2 ? "-webkit-optimize-contrast" : "auto",
+              }}
             />
 
             {/* Dynamic Grounding Overlays with Target Selection */}

@@ -116,16 +116,17 @@ export class SatelliteAcquisitionOrchestrator {
       });
     }
 
-    // Fetch REAL high-resolution satellite imagery raster for exact bounding box
+    // Fetch REAL ultra-high-definition satellite imagery raster for exact bounding box
     const t4Start = Date.now();
     let activeDataUrl = "";
     try {
       const { minLon, minLat, maxLon, maxLat } = location.bbox;
-      const imageryUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${minLon},${minLat},${maxLon},${maxLat}&bboxSR=4326&imageSR=4326&size=1024,1024&format=png&f=image`;
+      // High-density 1600x1600 raster with 192 DPI for super-sharp zoom capability
+      const imageryUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${minLon},${minLat},${maxLon},${maxLat}&bboxSR=4326&imageSR=4326&size=1600,1600&dpi=192&format=png&f=image`;
       
       const res = await fetch(imageryUrl, {
         headers: { "User-Agent": "NexSpace-Satellite-Intelligence-Platform/2.5" },
-        signal: AbortSignal.timeout(6500)
+        signal: AbortSignal.timeout(7500)
       });
 
       if (res.ok) {
@@ -137,7 +138,7 @@ export class SatelliteAcquisitionOrchestrator {
             stage: "satellite_raster_downloaded",
             status: "completed",
             durationMs: Date.now() - t4Start,
-            details: `Retrieved ${Math.round(buffer.byteLength / 1024)} KB high-resolution satellite optical raster for AOI`
+            details: `Retrieved ${Math.round(buffer.byteLength / 1024)} KB Ultra-HD (1600x1600, 192 DPI) satellite optical raster for AOI`
           });
         }
       }
@@ -159,8 +160,8 @@ export class SatelliteAcquisitionOrchestrator {
       dataUrl: activeDataUrl,
       source: "demo", // registered in canonical system
       uploadedAt: acquisition.metadata.acquisitionDate,
-      width: 1024,
-      height: 1024
+      width: 1600,
+      height: 1600
     };
 
     // Cache warm acquisition

@@ -679,7 +679,11 @@ function GroundingVisualOverlay({
             src={imageSrc}
             alt="Satellite Target Raster"
             className="w-full h-auto block select-none"
-            style={{ width: "100%", height: "auto" }}
+            style={{
+              width: "100%",
+              height: "auto",
+              imageRendering: zoom > 1.2 ? "-webkit-optimize-contrast" : "auto",
+            }}
           />
 
           {/* Real Grounding Bounding Boxes (Normalized & Aligned) */}
