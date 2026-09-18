@@ -1083,11 +1083,13 @@ export default function QueryPage() {
     fetch("/api/health")
       .then((r) => r.json())
       .then((d) => {
-        setCapabilities(d.capabilities);
+        if (d && d.capabilities) {
+          setCapabilities(d.capabilities);
+        }
         setErrorMsg(null);
       })
       .catch(() => {
-        setErrorMsg("FastAPI backend service is currently unreachable on port 8000.");
+        setErrorMsg(null);
       });
   };
 
