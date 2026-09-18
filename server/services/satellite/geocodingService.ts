@@ -150,6 +150,87 @@ const KNOWN_GEO_DATABASE: Record<string, Omit<GeocodedLocation, "name">> = {
     country: "Egypt",
     regionType: "coastal",
     suggestedRadiusKm: 4.0
+  },
+  "taj mahal": {
+    formattedAddress: "Taj Mahal, Agra, Uttar Pradesh, India",
+    latitude: 27.1751,
+    longitude: 78.0421,
+    bbox: { minLon: 78.030, minLat: 27.165, maxLon: 78.055, maxLat: 27.185 },
+    country: "India",
+    regionType: "urban",
+    suggestedRadiusKm: 1.5
+  },
+  "agra": {
+    formattedAddress: "Agra, Uttar Pradesh, India",
+    latitude: 27.1767,
+    longitude: 78.0081,
+    bbox: { minLon: 77.940, minLat: 27.110, maxLon: 78.080, maxLat: 27.240 },
+    country: "India",
+    regionType: "urban",
+    suggestedRadiusKm: 4.0
+  },
+  "jaipur": {
+    formattedAddress: "Jaipur, Rajasthan, India",
+    latitude: 26.9124,
+    longitude: 75.7873,
+    bbox: { minLon: 75.720, minLat: 26.850, maxLon: 75.860, maxLat: 26.980 },
+    country: "India",
+    regionType: "urban",
+    suggestedRadiusKm: 4.5
+  },
+  "ahmedabad": {
+    formattedAddress: "Ahmedabad, Gujarat, India",
+    latitude: 23.0225,
+    longitude: 72.5714,
+    bbox: { minLon: 72.500, minLat: 22.950, maxLon: 72.650, maxLat: 23.100 },
+    country: "India",
+    regionType: "urban",
+    suggestedRadiusKm: 5.0
+  },
+  "pune": {
+    formattedAddress: "Pune, Maharashtra, India",
+    latitude: 18.5204,
+    longitude: 73.8567,
+    bbox: { minLon: 73.780, minLat: 18.450, maxLon: 73.930, maxLat: 18.600 },
+    country: "India",
+    regionType: "urban",
+    suggestedRadiusKm: 4.5
+  },
+  "ayodhya": {
+    formattedAddress: "Ayodhya, Uttar Pradesh, India",
+    latitude: 26.7922,
+    longitude: 82.1998,
+    bbox: { minLon: 82.160, minLat: 26.760, maxLon: 82.240, maxLat: 26.830 },
+    country: "India",
+    regionType: "urban",
+    suggestedRadiusKm: 2.5
+  },
+  "kanpur": {
+    formattedAddress: "Kanpur, Uttar Pradesh, India",
+    latitude: 26.4499,
+    longitude: 80.3319,
+    bbox: { minLon: 80.260, minLat: 26.380, maxLon: 80.410, maxLat: 26.520 },
+    country: "India",
+    regionType: "industrial",
+    suggestedRadiusKm: 4.5
+  },
+  "noida": {
+    formattedAddress: "Noida, Uttar Pradesh, India",
+    latitude: 28.5355,
+    longitude: 77.3910,
+    bbox: { minLon: 77.330, minLat: 28.480, maxLon: 77.460, maxLat: 28.600 },
+    country: "India",
+    regionType: "urban",
+    suggestedRadiusKm: 3.5
+  },
+  "dubai": {
+    formattedAddress: "Dubai, United Arab Emirates",
+    latitude: 25.2048,
+    longitude: 55.2708,
+    bbox: { minLon: 55.150, minLat: 25.080, maxLon: 55.380, maxLat: 25.320 },
+    country: "UAE",
+    regionType: "coastal",
+    suggestedRadiusKm: 5.0
   }
 };
 
@@ -157,7 +238,7 @@ const KNOWN_GEO_DATABASE: Record<string, Omit<GeocodedLocation, "name">> = {
  * Extracts geographical entities from natural language text
  */
 export function extractLocationFromQuery(query: string): string | null {
-  const q = query.toLowerCase();
+  const q = query.toLowerCase().trim();
 
   // 1. Direct gazetteer match
   for (const key of Object.keys(KNOWN_GEO_DATABASE)) {
@@ -166,19 +247,44 @@ export function extractLocationFromQuery(query: string): string | null {
     }
   }
 
-  // 2. Pattern matching for "in <location>", "at <location>", "scan <location>", "of <location>"
+  // 2. Pattern matching for "scan <location>", "in <location>", "at <location>", "around <location>", "of <location>"
   const patterns = [
-    /(?:scan|monitor|analyze|check|search|image|view|inspect)\s+([a-zA-Z\s,]+?)(?:\s+for|\s+and|\s+to|$)/i,
-    /(?:in|at|around|near|of|over)\s+([a-zA-Z\s,]+?)(?:\s+for|\s+and|\s+to|\s+using|$)/i,
+    /(?:scan|monitor|analyze|check|search|image|view|inspect|track|locate|find)\s+([a-zA-Z0-9\s,]+?)(?:\s+for|\s+and|\s+to|\s+recent|\s+using|$)/i,
+    /(?:in|at|around|near|of|over|across)\s+([a-zA-Z0-9\s,]+?)(?:\s+for|\s+and|\s+to|\s+recent|\s+using|$)/i,
   ];
 
   for (const pat of patterns) {
     const m = query.match(pat);
     if (m && m[1]) {
       const candidate = m[1].trim();
-      if (candidate.length > 2 && !["this image", "the image", "buildings", "roads", "water", "vehicles"].includes(candidate.toLowerCase())) {
+      const lower = candidate.toLowerCase();
+      const blacklist = [
+        "this image", "the image", "image", "buildings", "building",
+        "roads", "road", "water", "vehicles", "cars", "objects",
+        "recent changes", "changes", "change", "target", "structures"
+      ];
+      if (candidate.length > 2 && !blacklist.includes(lower)) {
         return candidate;
       }
+    }
+  }
+
+  // 3. If query contains a comma (e.g. "Gomti Nagar, Lucknow")
+  if (query.includes(",")) {
+    const parts = query.split(",").map(p => p.trim());
+    if (parts.length >= 2 && parts[0].length > 2) {
+      return query.trim();
+    }
+  }
+
+  // 4. If query is a short noun phrase (1-3 words) not containing generic ML verbs
+  const words = query.trim().split(/\s+/);
+  if (words.length <= 4) {
+    const lower = query.toLowerCase();
+    const mlKeywords = ["describe", "detect", "segment", "locate", "count", "highlight", "find", "extract", "measure"];
+    const isGenericML = mlKeywords.some(kw => lower.startsWith(kw) && !lower.includes(" in ") && !lower.includes(" at "));
+    if (!isGenericML && query.length >= 3) {
+      return query.trim();
     }
   }
 
@@ -193,7 +299,7 @@ export async function geocodeLocation(locationQuery: string): Promise<GeocodedLo
 
   // 1. Check instant gazetteer
   for (const [key, data] of Object.entries(KNOWN_GEO_DATABASE)) {
-    if (norm.includes(key) || key.includes(norm)) {
+    if (norm === key || norm.includes(key) || key.includes(norm)) {
       return {
         name: key.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "),
         ...data
@@ -201,12 +307,12 @@ export async function geocodeLocation(locationQuery: string): Promise<GeocodedLo
     }
   }
 
-  // 2. OpenStreetMap Nominatim Live Geocoding API with 2.5s timeout
+  // 2. OpenStreetMap Nominatim Live Geocoding API with 3.5s timeout
   try {
     const encoded = encodeURIComponent(locationQuery);
     const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`, {
       headers: { "User-Agent": "NexSpace-Satellite-Intelligence-Platform/2.5" },
-      signal: AbortSignal.timeout(2500)
+      signal: AbortSignal.timeout(3500)
     });
 
     if (res.ok) {
@@ -228,8 +334,8 @@ export async function geocodeLocation(locationQuery: string): Promise<GeocodedLo
             maxLon: Number((lon + delta).toFixed(4)),
             maxLat: Number((lat + delta).toFixed(4))
           },
-          country: "Global",
-          regionType: "general",
+          country: item.display_name.includes("India") ? "India" : "Global",
+          regionType: "urban",
           suggestedRadiusKm: 2.5
         };
       }
@@ -238,7 +344,7 @@ export async function geocodeLocation(locationQuery: string): Promise<GeocodedLo
     // Timeout or network error -> fallback to default AOI
   }
 
-  // 3. Fallback to default Gomti Nagar, Lucknow if query looks Indian or urban
+  // 3. Fallback to default Gomti Nagar, Lucknow if query cannot be resolved
   const defaultLoc = KNOWN_GEO_DATABASE["gomti nagar"];
   return {
     name: locationQuery,

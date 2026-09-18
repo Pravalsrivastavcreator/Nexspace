@@ -116,9 +116,40 @@ export class SatelliteAcquisitionOrchestrator {
       });
     }
 
-    // Assign appropriate high-fidelity satellite AOI dataUrl
-    const isCoastal = location.regionType === "coastal" || location.name.toLowerCase().includes("mumbai") || location.name.toLowerCase().includes("marine");
-    const activeDataUrl = isCoastal ? SAMPLE_OPTICAL_PORT : SAMPLE_OPTICAL_URBAN;
+    // Fetch REAL high-resolution satellite imagery raster for exact bounding box
+    const t4Start = Date.now();
+    let activeDataUrl = "";
+    try {
+      const { minLon, minLat, maxLon, maxLat } = location.bbox;
+      const imageryUrl = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${minLon},${minLat},${maxLon},${maxLat}&bboxSR=4326&imageSR=4326&size=1024,1024&format=png&f=image`;
+      
+      const res = await fetch(imageryUrl, {
+        headers: { "User-Agent": "NexSpace-Satellite-Intelligence-Platform/2.5" },
+        signal: AbortSignal.timeout(6500)
+      });
+
+      if (res.ok) {
+        const buffer = await res.arrayBuffer();
+        if (buffer.byteLength > 5000) {
+          const base64 = Buffer.from(buffer).toString("base64");
+          activeDataUrl = `data:image/png;base64,${base64}`;
+          telemetryStages.push({
+            stage: "satellite_raster_downloaded",
+            status: "completed",
+            durationMs: Date.now() - t4Start,
+            details: `Retrieved ${Math.round(buffer.byteLength / 1024)} KB high-resolution satellite optical raster for AOI`
+          });
+        }
+      }
+    } catch {
+      // If live raster fetch times out, use local tile fallback
+    }
+
+    if (!activeDataUrl) {
+      const isCoastal = location.regionType === "coastal" || location.name.toLowerCase().includes("mumbai") || location.name.toLowerCase().includes("marine");
+      activeDataUrl = isCoastal ? SAMPLE_OPTICAL_PORT : SAMPLE_OPTICAL_URBAN;
+    }
+
     acquisition.metadata.dataUrl = activeDataUrl;
 
     const sourceImage: CanonicalSourceImage = {
