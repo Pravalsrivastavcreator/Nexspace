@@ -589,7 +589,7 @@ function ImageSelector({
 }
 
 // ----------------------------------------------------------------
-// Grounding Visual Bounding Box Overlay Component (Safe & Robust)
+// Grounding Visual Bounding Box Overlay Component (Expansive & Border-Touching)
 // ----------------------------------------------------------------
 function GroundingVisualOverlay({
   imageSrc,
@@ -598,48 +598,125 @@ function GroundingVisualOverlay({
   imageSrc: string;
   detections?: unknown[];
 }) {
+  const [zoom, setZoom] = useState(1);
+  const [isFullFit, setIsFullFit] = useState(false);
+
+  const handleZoomIn = () => setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)));
+  const handleZoomOut = () => setZoom((z) => Math.max(1, +(z - 0.25).toFixed(2)));
+  const handleReset = () => {
+    setZoom(1);
+    setIsFullFit(false);
+  };
+
   return (
-    <div className="relative w-full rounded-xl overflow-hidden border border-cyan-500/25 bg-[#08121e]">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={imageSrc}
-        alt="Satellite Target Raster"
-        className="w-full h-auto max-h-[380px] object-contain mx-auto block"
-      />
+    <div className="relative w-full rounded-xl overflow-hidden border border-cyan-500/40 bg-[#070f1a] shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+      {/* Floating Viewport HUD Toolbar */}
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 bg-[#09131f]/90 backdrop-blur-md border-b border-slate-800/80 text-[11px] font-mono text-slate-300 z-20">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+          <span className="text-white font-semibold tracking-tight text-[11px]">
+            High-Resolution Satellite Raster Viewport
+          </span>
+          <span className="text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
+            {detections?.length ? `${detections.length} Target(s) Localized` : "Active AOI"}
+          </span>
+        </div>
 
-      {/* Real Grounding Bounding Boxes (Normalized & Protected) */}
-      {detections?.map((rawDet, idx) => {
-        const box = normalizeBox(rawDet);
-        if (!box) return null;
-
-        const [xmin, ymin, xmax, ymax] = box;
-        const top = (ymin / 1000) * 100;
-        const left = (xmin / 1000) * 100;
-        const width = Math.max(1, ((xmax - xmin) / 1000) * 100);
-        const height = Math.max(1, ((ymax - ymin) / 1000) * 100);
-
-        const detObj = rawDet as { label?: string; score?: number };
-        const label = detObj.label || "Detected Structure";
-        const score = typeof detObj.score === "number" ? detObj.score : null;
-        const conf = getConfidenceInfo(score);
-
-        return (
-          <div
-            key={idx}
-            style={{
-              top: `${top}%`,
-              left: `${left}%`,
-              width: `${width}%`,
-              height: `${height}%`,
-            }}
-            className="absolute border-2 border-cyan-400 bg-cyan-400/15 pointer-events-none shadow-[0_0_12px_rgba(6,182,212,0.6)] flex items-start justify-start p-1"
+        {/* Viewport & Zoom Controls */}
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            disabled={zoom <= 1}
+            className="p-1 rounded bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-cyan-300 disabled:opacity-40 transition-all cursor-pointer"
+            title="Zoom Out"
           >
-            <span className="bg-slate-900/90 text-cyan-300 font-mono text-[9px] px-1.5 py-0.5 rounded border border-cyan-500/40 shadow-sm whitespace-nowrap">
-              {label} · {conf.label}
-            </span>
-          </div>
-        );
-      })}
+            -
+          </button>
+          <span className="text-[10px] font-mono px-1.5 text-cyan-300">
+            {Math.round(zoom * 100)}%
+          </span>
+          <button
+            type="button"
+            onClick={handleZoomIn}
+            disabled={zoom >= 3}
+            className="p-1 rounded bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-cyan-300 disabled:opacity-40 transition-all cursor-pointer"
+            title="Zoom In"
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsFullFit((f) => !f)}
+            className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900/80 hover:bg-cyan-500/15 border border-slate-700 hover:border-cyan-500/40 text-slate-300 hover:text-cyan-300 transition-all ml-1 cursor-pointer"
+          >
+            {isFullFit ? "Standard View" : "Full Width"}
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-slate-200 transition-all cursor-pointer"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable Viewport Canvas Container (Touches Border, Expansive) */}
+      <div className={`relative w-full overflow-auto bg-[#070f1a] transition-all ${
+        isFullFit ? "max-h-[850px]" : "max-h-[620px]"
+      } scrollbar-thin scrollbar-thumb-cyan-500/30 scrollbar-track-slate-950`}>
+        <div
+          className="relative w-full origin-top transition-transform duration-150 ease-out"
+          style={{
+            transform: `scale(${zoom})`,
+            minHeight: "480px",
+          }}
+        >
+          {/* Main Satellite Image Raster - Touching viewport border with 100% width */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageSrc}
+            alt="Satellite Target Raster"
+            className="w-full h-auto block select-none"
+            style={{ width: "100%", height: "auto" }}
+          />
+
+          {/* Real Grounding Bounding Boxes (Normalized & Aligned) */}
+          {detections?.map((rawDet, idx) => {
+            const box = normalizeBox(rawDet);
+            if (!box) return null;
+
+            const [xmin, ymin, xmax, ymax] = box;
+            const top = (ymin / 1000) * 100;
+            const left = (xmin / 1000) * 100;
+            const width = Math.max(1.5, ((xmax - xmin) / 1000) * 100);
+            const height = Math.max(1.5, ((ymax - ymin) / 1000) * 100);
+
+            const detObj = rawDet as { label?: string; score?: number };
+            const label = detObj.label || "Detected Structure";
+            const score = typeof detObj.score === "number" ? detObj.score : null;
+            const conf = getConfidenceInfo(score);
+
+            return (
+              <div
+                key={idx}
+                style={{
+                  top: `${top}%`,
+                  left: `${left}%`,
+                  width: `${width}%`,
+                  height: `${height}%`,
+                }}
+                className="absolute border-2 border-cyan-400 bg-cyan-400/20 shadow-[0_0_14px_rgba(6,182,212,0.7)] flex items-start justify-start p-1 pointer-events-none transition-all"
+              >
+                <span className="bg-slate-950/90 text-cyan-300 font-mono text-[10px] font-semibold px-2 py-0.5 rounded border border-cyan-500/50 shadow-md whitespace-nowrap">
+                  {label} · {conf.label} {score !== null ? `(${Math.round(score * 100)}%)` : ""}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
