@@ -1449,6 +1449,17 @@ export default function QueryPage() {
       const data = await res.json();
       setApiResult(data);
 
+      // CRITICAL: If the query acquired/returned a real satellite image, ALWAYS sync it into activeSource!
+      if (data.source_image && data.source_image.dataUrl) {
+        activeSource = data.source_image;
+        setCanonicalSource(data.source_image);
+        setActiveSourceImage(data.source_image);
+      } else if (data.satellite_image && data.satellite_image.dataUrl) {
+        activeSource = data.satellite_image;
+        setCanonicalSource(data.satellite_image);
+        setActiveSourceImage(data.satellite_image);
+      }
+
       // Persist canonical investigation state across pages
       const invState: CanonicalInvestigationState = {
         investigation_id: data.request_id || `INV-${Date.now()}`,

@@ -295,6 +295,8 @@ export interface NexSpaceQueryResponse {
   optical_sar_analysis?: OpticalSARAnalysisResult | null;
   semantic_change?: Record<string, unknown> | null;
   response_text?: string;
+  source_image?: CanonicalSourceImage | null;
+  satellite_image?: CanonicalSourceImage | null;
   backend_status?: "live_backend" | "offline_fallback";
 }
 

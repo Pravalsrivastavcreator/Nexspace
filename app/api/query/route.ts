@@ -569,6 +569,8 @@ async function runLiveNeuralEngine(
     fallback_count: 0,
     limitations: [],
     response_text: `Analysis complete. Localized ${detections.length} key feature(s) across the active scene.`,
+    source_image: satAcquisition ? satAcquisition.sourceImage : null,
+    satellite_image: satAcquisition ? satAcquisition.sourceImage : null,
     backend_status: "live_backend"
   };
 }
