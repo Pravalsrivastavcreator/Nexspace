@@ -240,20 +240,13 @@ const KNOWN_GEO_DATABASE: Record<string, Omit<GeocodedLocation, "name">> = {
 export function extractLocationFromQuery(query: string): string | null {
   const q = query.toLowerCase().trim();
 
-  // 1. Direct gazetteer match
-  for (const key of Object.keys(KNOWN_GEO_DATABASE)) {
-    if (q.includes(key)) {
-      return key;
-    }
-  }
-
-  // 2. Pattern matching for "scan <location>", "in <location>", "at <location>", "around <location>", "of <location>"
-  const patterns = [
-    /(?:scan|monitor|analyze|check|search|image|view|inspect|track|locate|find)\s+([a-zA-Z0-9\s,]+?)(?:\s+for|\s+and|\s+to|\s+recent|\s+using|$)/i,
-    /(?:in|at|around|near|of|over|across)\s+([a-zA-Z0-9\s,]+?)(?:\s+for|\s+and|\s+to|\s+recent|\s+using|$)/i,
+  // 1. Check for location prepositions first ("in <loc>", "at <loc>", "near <loc>", "around <loc>", "of <loc>")
+  const prepPatterns = [
+    /(?:in|at|around|near|over|across)\s+([a-zA-Z0-9\s,]+?)(?:\s+for|\s+to|\s+using|\s+with|\s+and\s+scan|$)/i,
+    /(?:scan|monitor|image|inspect|view)\s+(?:of\s+)?([a-zA-Z0-9\s,]+?)(?:\s+for|\s+and\s+locate|\s+and\s+find|\s+to|\s+recent|$)/i,
   ];
 
-  for (const pat of patterns) {
+  for (const pat of prepPatterns) {
     const m = query.match(pat);
     if (m && m[1]) {
       const candidate = m[1].trim();
@@ -261,30 +254,40 @@ export function extractLocationFromQuery(query: string): string | null {
       const blacklist = [
         "this image", "the image", "image", "buildings", "building",
         "roads", "road", "water", "vehicles", "cars", "objects",
-        "recent changes", "changes", "change", "target", "structures"
+        "recent changes", "changes", "change", "target", "structures",
+        "commercial areas", "water bodies", "residential", "parks"
       ];
-      if (candidate.length > 2 && !blacklist.includes(lower)) {
+      if (candidate.length > 2 && !blacklist.includes(lower) && !lower.startsWith("commercial") && !lower.startsWith("water")) {
+        // If candidate contains a known gazetteer entry, return that
+        for (const key of Object.keys(KNOWN_GEO_DATABASE)) {
+          if (lower.includes(key)) {
+            return key;
+          }
+        }
         return candidate;
       }
     }
   }
 
-  // 3. If query contains a comma (e.g. "Gomti Nagar, Lucknow")
-  if (query.includes(",")) {
-    const parts = query.split(",").map(p => p.trim());
-    if (parts.length >= 2 && parts[0].length > 2) {
-      return query.trim();
+  // 2. Direct gazetteer match anywhere in query
+  // Sort by length descending so "gomti nagar" matches before "nagar"
+  const sortedKeys = Object.keys(KNOWN_GEO_DATABASE).sort((a, b) => b.length - a.length);
+  for (const key of sortedKeys) {
+    if (q.includes(key)) {
+      return key;
     }
   }
 
-  // 4. If query is a short noun phrase (1-3 words) not containing generic ML verbs
-  const words = query.trim().split(/\s+/);
-  if (words.length <= 4) {
-    const lower = query.toLowerCase();
-    const mlKeywords = ["describe", "detect", "segment", "locate", "count", "highlight", "find", "extract", "measure"];
-    const isGenericML = mlKeywords.some(kw => lower.startsWith(kw) && !lower.includes(" in ") && !lower.includes(" at "));
-    if (!isGenericML && query.length >= 3) {
-      return query.trim();
+  // 3. If query contains a comma with proper nouns (e.g. "Gomti Nagar, Lucknow")
+  if (query.includes(",")) {
+    const parts = query.split(",").map(p => p.trim());
+    if (parts.length >= 2 && parts[0].length > 2) {
+      // Check if it's not just a list of words
+      const lastPart = parts[parts.length - 1].toLowerCase();
+      const mlWords = ["water", "buildings", "roads", "trees", "changes"];
+      if (!mlWords.includes(lastPart)) {
+        return query.trim();
+      }
     }
   }
 

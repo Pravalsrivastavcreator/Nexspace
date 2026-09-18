@@ -343,7 +343,7 @@ export interface CanonicalSourceImage {
   filename: string;
   mediaType: string;
   dataUrl: string;
-  source: "upload" | "demo";
+  source: "upload" | "demo" | "satellite";
   sha256?: string;
   uploadedAt?: string;
   width?: number;

@@ -158,7 +158,7 @@ export class SatelliteAcquisitionOrchestrator {
       filename: `${location.name.replace(/\s+/g, "_")}_${acquisition.metadata.satellite}_${acquisition.metadata.acquisitionDate}.tif`,
       mediaType: "image/tiff",
       dataUrl: activeDataUrl,
-      source: "demo", // registered in canonical system
+      source: "satellite", // registered satellite source
       uploadedAt: acquisition.metadata.acquisitionDate,
       width: 1600,
       height: 1600

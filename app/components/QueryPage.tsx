@@ -749,7 +749,9 @@ function ScanResultsPanel({
   const overallConf = getConfidenceInfo(result.confidence, result.confidence_type);
 
   const isOffline = result.backend_status === "offline_fallback";
-  const isDemo = sourceImage.source === "demo";
+  const isSatellite = sourceImage.source === "satellite" || sourceImage.id?.startsWith("sat-");
+  const isUpload = sourceImage.source === "upload";
+  const isDemo = !isSatellite && !isUpload && sourceImage.source === "demo";
   const hasFallbackTool = result.selected_tools?.includes("VQA");
 
   return (
@@ -766,22 +768,32 @@ function ScanResultsPanel({
               <span className="text-[10px] font-mono text-rose-300 bg-rose-500/20 border border-rose-500/40 px-2 py-0.5 rounded-full font-bold">
                 🔴 AI BACKEND OFFLINE
               </span>
-            ) : isDemo ? (
-              <span className="text-[10px] font-mono text-blue-300 bg-blue-500/20 border border-blue-500/40 px-2 py-0.5 rounded-full font-bold">
-                🔵 VERIFIED DEMO IMAGE
+            ) : isSatellite ? (
+              <span className="text-[10px] font-mono text-cyan-300 bg-cyan-500/20 border border-cyan-500/40 px-2 py-0.5 rounded-full font-bold">
+                🟢 LIVE COPERNICUS SATELLITE ANALYSIS
+              </span>
+            ) : isUpload ? (
+              <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">
+                🟢 UPLOADED RASTER ANALYSIS
               </span>
             ) : hasFallbackTool ? (
               <span className="text-[10px] font-mono text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
                 🟡 FALLBACK ANALYSIS
               </span>
             ) : (
-              <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">
-                🟢 LIVE AI ANALYSIS
+              <span className="text-[10px] font-mono text-blue-300 bg-blue-500/20 border border-blue-500/40 px-2 py-0.5 rounded-full font-bold">
+                🔵 DEMO CATALOG SCENE
               </span>
             )}
           </div>
           <p className="text-xs text-slate-400 font-mono mt-0.5">
-            Source Imagery: <strong className="text-cyan-300">{sourceImage.filename}</strong> · {sourceImage.source === "upload" ? "Uploaded by user" : "Verified demo tile"}
+            Source Imagery: <strong className="text-cyan-300">{sourceImage.filename}</strong> · {
+              isSatellite
+                ? "Copernicus Sentinel-2 Level-2A (10m BOA Multi-Spectral Composite)"
+                : isUpload
+                ? "User-uploaded optical / SAR raster"
+                : "Catalog demonstration raster"
+            }
           </p>
         </div>
 
@@ -1375,8 +1387,13 @@ export default function QueryPage() {
 
     let activeSource = srcImage;
 
-    // If query has location name and user hasn't uploaded a manual file, trigger auto satellite acquisition
-    if (srcImage.source !== "upload") {
+    const lowerQ = qText.toLowerCase();
+    const isCurrentCustom = srcImage.source === "upload" || srcImage.source === "satellite" || (srcImage.id && srcImage.id.startsWith("sat-"));
+    const KNOWN_LOCS = ["lucknow", "gomti", "mumbai", "marine", "delhi", "connaught", "bengaluru", "bangalore", "taj mahal", "agra", "jaipur", "ayodhya", "kanpur", "noida", "dubai", "pune", "ahmedabad", "varanasi", "chennai", "kolkata", "wayanad"];
+    const hasExplicitNewLoc = KNOWN_LOCS.some(loc => lowerQ.includes(loc)) || /(?:in|at|around|near|over)\s+[a-zA-Z]{3,}/i.test(qText);
+
+    // Only acquire new satellite image if query explicitly mentions a new geographic location
+    if (hasExplicitNewLoc && (!isCurrentCustom || !srcImage.filename.toLowerCase().includes(lowerQ.slice(0, 8)))) {
       try {
         setLoadingPhase("GEOCODING & ACQUIRING COPERNICUS SATELLITE AOI...");
         const satRes = await fetch("/api/satellite/acquire", {
@@ -1460,8 +1477,13 @@ export default function QueryPage() {
     setActiveScenario(sc.id);
     setQuery(sc.query);
     
-    // Preserve current source image if user has uploaded a real image or acquired satellite imagery
-    const isCustomActive = canonicalSource && (canonicalSource.source === "upload" || (canonicalSource.id && !canonicalSource.id.startsWith("src-demo-")));
+    // STRICT PERSISTENCE: If user has an active satellite image or uploaded image, DO NOT replace it with sample demo!
+    const isCustomActive = canonicalSource && (
+      canonicalSource.source === "upload" || 
+      canonicalSource.source === "satellite" || 
+      (canonicalSource.id && !canonicalSource.id.startsWith("src-demo-"))
+    );
+    
     const targetSource = isCustomActive ? canonicalSource : (sc.source || canonicalSource);
     
     if (!isCustomActive && sc.source) {
@@ -1470,7 +1492,7 @@ export default function QueryPage() {
     if (sc.sarImage !== undefined) {
       setSarImage(sc.sarImage);
     }
-    handleExecuteWith(sc.query, targetSource, sc.sarImage ?? sarImage);
+    handleExecuteWith(sc.query, targetSource, sc.sarImage !== undefined ? sc.sarImage : sarImage);
   };
 
   const handleReset = () => {
