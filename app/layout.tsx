@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import OrbitalEnergyBackground from "./components/OrbitalEnergyBackground";
+import { NEXAProvider } from "./components/nexa/NEXAProvider";
+import NEXAAssistant from "./components/nexa/NEXAAssistant";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,8 +32,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className="min-h-full flex flex-col bg-[#06111d] text-white selection:bg-cyan-500/20 selection:text-cyan-300"
       >
         <OrbitalEnergyBackground />
-        {children}
+        <NEXAProvider>
+          {children}
+          <NEXAAssistant />
+        </NEXAProvider>
       </body>
     </html>
   );
 }
+

@@ -1108,6 +1108,15 @@ export default function QueryPage() {
       if (currentInv.source_image) setCanonicalSource(currentInv.source_image);
       if (currentInv.sar_image) setSarImage(currentInv.sar_image);
     }
+
+    // Check if query was passed via URL parameter (e.g. from NEXA Assistant)
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const qParam = urlParams.get("q");
+      if (qParam && qParam.trim()) {
+        setQuery(qParam.trim());
+      }
+    }
   }, []);
 
   const phases = [
