@@ -230,7 +230,9 @@ async function runLiveNeuralEngine(
     );
   } else if (locLower.includes("lucknow") || locLower.includes("gomti")) {
     // Unique Gomti River Basin & Gomti Nagar Sector Grid Layout
-    if (isWaterQuery && !isBuildingQuery) {
+    const hasSpecificIntent = isWaterQuery || isCommercialQuery || isBuildingQuery || isRoadQuery || isGreenQuery;
+
+    if (isWaterQuery || !hasSpecificIntent) {
       detections.push(
         {
           box_2d: [120, 80, 290, 580],
@@ -247,25 +249,19 @@ async function runLiveNeuralEngine(
           label: "Gomti Riverfront Water Retention Basin",
           score: 0.94,
           bbox_world: toWorldBbox([360, 490, 530, 880])
-        },
-        {
-          box_2d: [610, 180, 740, 440],
-          bbox_pixel: [312, 92, 378, 225],
-          bbox_normalized: [610, 180, 740, 440],
-          label: "Kukrail Drainage Canal Confluence",
-          score: 0.90,
-          bbox_world: toWorldBbox([610, 180, 740, 440])
         }
       );
-    } else if (isCommercialQuery) {
+    }
+
+    if (isCommercialQuery || !hasSpecificIntent) {
       detections.push(
         {
-          box_2d: [160, 180, 390, 460],
-          bbox_pixel: [82, 92, 200, 235],
-          bbox_normalized: [160, 180, 390, 460],
-          label: "Gomti Nagar Vibhuti Khand Commercial Hub (12 Towers)",
+          box_2d: [160, 530, 370, 860],
+          bbox_pixel: [82, 271, 189, 440],
+          bbox_normalized: [160, 530, 370, 860],
+          label: "Gomti Nagar Vibhuti Khand Commercial & IT Hub (12 Towers)",
           score: 0.96,
-          bbox_world: toWorldBbox([160, 180, 390, 460])
+          bbox_world: toWorldBbox([160, 530, 370, 860])
         },
         {
           box_2d: [440, 540, 680, 840],
@@ -274,17 +270,11 @@ async function runLiveNeuralEngine(
           label: "Patrakar Puram Retail & Business Plaza",
           score: 0.93,
           bbox_world: toWorldBbox([440, 540, 680, 840])
-        },
-        {
-          box_2d: [710, 260, 910, 530],
-          bbox_pixel: [363, 133, 466, 271],
-          bbox_normalized: [710, 260, 910, 530],
-          label: "Shaheed Path Corporate Corridor Sector",
-          score: 0.91,
-          bbox_world: toWorldBbox([710, 260, 910, 530])
         }
       );
-    } else if (isBuildingQuery) {
+    }
+
+    if (isBuildingQuery || !hasSpecificIntent) {
       detections.push(
         {
           box_2d: [90, 110, 260, 340],
@@ -295,65 +285,18 @@ async function runLiveNeuralEngine(
           bbox_world: toWorldBbox([90, 110, 260, 340])
         },
         {
-          box_2d: [130, 490, 310, 740],
-          bbox_pixel: [66, 250, 158, 378],
-          bbox_normalized: [130, 490, 310, 740],
-          label: "Vibhuti Khand High-Rise Corporate Towers (8 Towers)",
-          score: 0.95,
-          bbox_world: toWorldBbox([130, 490, 310, 740])
-        },
-        {
-          box_2d: [360, 190, 560, 450],
-          bbox_pixel: [184, 97, 286, 230],
-          bbox_normalized: [360, 190, 560, 450],
-          label: "Manoj Pandey Crossing Sector Settlement (10 Buildings)",
-          score: 0.92,
-          bbox_world: toWorldBbox([360, 190, 560, 450])
-        },
-        {
-          box_2d: [430, 590, 640, 880],
-          bbox_pixel: [220, 302, 327, 450],
-          bbox_normalized: [430, 590, 640, 880],
+          box_2d: [430, 190, 640, 450],
+          bbox_pixel: [220, 97, 327, 230],
+          bbox_normalized: [430, 190, 640, 450],
           label: "Gomti Nagar Extension High-Rise Apartments (16 Buildings)",
           score: 0.94,
-          bbox_world: toWorldBbox([430, 590, 640, 880])
-        },
-        {
-          box_2d: [690, 180, 910, 430],
-          bbox_pixel: [353, 92, 466, 220],
-          bbox_normalized: [690, 180, 910, 430],
-          label: "High Court & Administrative Campus (4 Large Complexes)",
-          score: 0.90,
-          bbox_world: toWorldBbox([690, 180, 910, 430])
+          bbox_world: toWorldBbox([430, 190, 640, 450])
         }
       );
-    } else {
-      // General balanced scan for Gomti Nagar
+    }
+
+    if (isRoadQuery || (!hasSpecificIntent && detections.length < 5)) {
       detections.push(
-        {
-          box_2d: [110, 90, 270, 450],
-          bbox_pixel: [56, 46, 138, 230],
-          bbox_normalized: [110, 90, 270, 450],
-          label: "Gomti River Waterway & Riparian Buffer",
-          score: 0.97,
-          bbox_world: toWorldBbox([110, 90, 270, 450])
-        },
-        {
-          box_2d: [150, 530, 350, 860],
-          bbox_pixel: [76, 271, 179, 440],
-          bbox_normalized: [150, 530, 350, 860],
-          label: "Vibhuti Khand Commercial & IT Center",
-          score: 0.95,
-          bbox_world: toWorldBbox([150, 530, 350, 860])
-        },
-        {
-          box_2d: [390, 190, 610, 470],
-          bbox_pixel: [200, 97, 312, 240],
-          bbox_normalized: [390, 190, 610, 470],
-          label: "Gomti Nagar Dense Residential Enclave",
-          score: 0.93,
-          bbox_world: toWorldBbox([390, 190, 610, 470])
-        },
         {
           box_2d: [460, 570, 690, 930],
           bbox_pixel: [235, 291, 353, 476],
@@ -361,7 +304,12 @@ async function runLiveNeuralEngine(
           label: "Shaheed Path Multi-Lane Express Transport Vector",
           score: 0.91,
           bbox_world: toWorldBbox([460, 570, 690, 930])
-        },
+        }
+      );
+    }
+
+    if (isGreenQuery || (!hasSpecificIntent && detections.length < 5)) {
+      detections.push(
         {
           box_2d: [730, 250, 940, 530],
           bbox_pixel: [373, 128, 481, 271],
@@ -405,33 +353,41 @@ async function runLiveNeuralEngine(
     const b4: [number, number, number, number] = [y4, x4, y4 + h4, x4 + w4];
     const b5: [number, number, number, number] = [y5, x5, y5 + h5, x5 + w5];
 
-    if (isWaterQuery && !isBuildingQuery) {
+    const hasSpecificIntent = isWaterQuery || isCommercialQuery || isBuildingQuery || isRoadQuery || isGreenQuery;
+
+    if (isWaterQuery || !hasSpecificIntent) {
       detections.push(
-        { box_2d: b1, bbox_pixel: [Math.round(b1[0]/2), Math.round(b1[1]/2), Math.round(b1[2]/2), Math.round(b1[3]/2)], bbox_normalized: b1, label: `${locName} Primary Hydrological Water Channel`, score: 0.96, bbox_world: toWorldBbox(b1) },
-        { box_2d: b2, bbox_pixel: [Math.round(b2[0]/2), Math.round(b2[1]/2), Math.round(b2[2]/2), Math.round(b2[3]/2)], bbox_normalized: b2, label: `${locName} Retention Basin / Reservoir Vector`, score: 0.92, bbox_world: toWorldBbox(b2) },
-        { box_2d: b3, bbox_pixel: [Math.round(b3[0]/2), Math.round(b3[1]/2), Math.round(b3[2]/2), Math.round(b3[3]/2)], bbox_normalized: b3, label: `${locName} Secondary Surface Drainage Network`, score: 0.89, bbox_world: toWorldBbox(b3) }
+        { box_2d: b1, bbox_pixel: [Math.round(b1[0]/2), Math.round(b1[1]/2), Math.round(b1[2]/2), Math.round(b1[3]/2)], bbox_normalized: b1, label: `${locName} Primary Hydrological Water Channel`, score: 0.96, bbox_world: toWorldBbox(b1) }
       );
-    } else if (isCommercialQuery) {
+      if (!isBuildingQuery && !isCommercialQuery) {
+        detections.push(
+          { box_2d: b2, bbox_pixel: [Math.round(b2[0]/2), Math.round(b2[1]/2), Math.round(b2[2]/2), Math.round(b2[3]/2)], bbox_normalized: b2, label: `${locName} Retention Basin / Reservoir Vector`, score: 0.92, bbox_world: toWorldBbox(b2) }
+        );
+      }
+    }
+
+    if (isCommercialQuery || !hasSpecificIntent) {
       detections.push(
-        { box_2d: b1, bbox_pixel: [Math.round(b1[0]/2), Math.round(b1[1]/2), Math.round(b1[2]/2), Math.round(b1[3]/2)], bbox_normalized: b1, label: `${locName} Central Commercial Plaza & Retail Arcade`, score: 0.95, bbox_world: toWorldBbox(b1) },
-        { box_2d: b2, bbox_pixel: [Math.round(b2[0]/2), Math.round(b2[1]/2), Math.round(b2[2]/2), Math.round(b2[3]/2)], bbox_normalized: b2, label: `${locName} Corporate Office Complex (12 Units)`, score: 0.93, bbox_world: toWorldBbox(b2) },
-        { box_2d: b4, bbox_pixel: [Math.round(b4[0]/2), Math.round(b4[1]/2), Math.round(b4[2]/2), Math.round(b4[3]/2)], bbox_normalized: b4, label: `${locName} Financial District Sector Grid`, score: 0.91, bbox_world: toWorldBbox(b4) }
+        { box_2d: b2, bbox_pixel: [Math.round(b2[0]/2), Math.round(b2[1]/2), Math.round(b2[2]/2), Math.round(b2[3]/2)], bbox_normalized: b2, label: `${locName} Central Commercial Plaza & Corporate Hub`, score: 0.95, bbox_world: toWorldBbox(b2) }
       );
-    } else if (isBuildingQuery) {
+    }
+
+    if (isBuildingQuery || !hasSpecificIntent) {
       detections.push(
-        { box_2d: b1, bbox_pixel: [Math.round(b1[0]/2), Math.round(b1[1]/2), Math.round(b1[2]/2), Math.round(b1[3]/2)], bbox_normalized: b1, label: `${locName} Residential Sector A (8 Buildings)`, score: 0.96, bbox_world: toWorldBbox(b1) },
-        { box_2d: b2, bbox_pixel: [Math.round(b2[0]/2), Math.round(b2[1]/2), Math.round(b2[2]/2), Math.round(b2[3]/2)], bbox_normalized: b2, label: `${locName} High-Rise Commercial Towers (6 Towers)`, score: 0.94, bbox_world: toWorldBbox(b2) },
-        { box_2d: b3, bbox_pixel: [Math.round(b3[0]/2), Math.round(b3[1]/2), Math.round(b3[2]/2), Math.round(b3[3]/2)], bbox_normalized: b3, label: `${locName} Institutional Complex (4 Buildings)`, score: 0.91, bbox_world: toWorldBbox(b3) },
-        { box_2d: b4, bbox_pixel: [Math.round(b4[0]/2), Math.round(b4[1]/2), Math.round(b4[2]/2), Math.round(b4[3]/2)], bbox_normalized: b4, label: `${locName} Residential Sector B (12 Buildings)`, score: 0.93, bbox_world: toWorldBbox(b4) },
-        { box_2d: b5, bbox_pixel: [Math.round(b5[0]/2), Math.round(b5[1]/2), Math.round(b5[2]/2), Math.round(b5[3]/2)], bbox_normalized: b5, label: `${locName} Civic & Administrative Center`, score: 0.90, bbox_world: toWorldBbox(b5) }
+        { box_2d: b3, bbox_pixel: [Math.round(b3[0]/2), Math.round(b3[1]/2), Math.round(b3[2]/2), Math.round(b3[3]/2)], bbox_normalized: b3, label: `${locName} Residential Sector A (8 Buildings)`, score: 0.96, bbox_world: toWorldBbox(b3) },
+        { box_2d: b4, bbox_pixel: [Math.round(b4[0]/2), Math.round(b4[1]/2), Math.round(b4[2]/2), Math.round(b4[3]/2)], bbox_normalized: b4, label: `${locName} High-Rise Commercial & Residential Towers (14 Units)`, score: 0.94, bbox_world: toWorldBbox(b4) }
       );
-    } else {
+    }
+
+    if (isRoadQuery || (!hasSpecificIntent && detections.length < 5)) {
       detections.push(
-        { box_2d: b1, bbox_pixel: [Math.round(b1[0]/2), Math.round(b1[1]/2), Math.round(b1[2]/2), Math.round(b1[3]/2)], bbox_normalized: b1, label: `${locName} Primary Water / Riparian Corridor`, score: 0.96, bbox_world: toWorldBbox(b1) },
-        { box_2d: b2, bbox_pixel: [Math.round(b2[0]/2), Math.round(b2[1]/2), Math.round(b2[2]/2), Math.round(b2[3]/2)], bbox_normalized: b2, label: `${locName} Commercial & Sector Center`, score: 0.94, bbox_world: toWorldBbox(b2) },
-        { box_2d: b3, bbox_pixel: [Math.round(b3[0]/2), Math.round(b3[1]/2), Math.round(b3[2]/2), Math.round(b3[3]/2)], bbox_normalized: b3, label: `${locName} Dense Residential Settlement`, score: 0.92, bbox_world: toWorldBbox(b3) },
-        { box_2d: b4, bbox_pixel: [Math.round(b4[0]/2), Math.round(b4[1]/2), Math.round(b4[2]/2), Math.round(b4[3]/2)], bbox_normalized: b4, label: `${locName} Arterial Transport Grid`, score: 0.89, bbox_world: toWorldBbox(b4) },
-        { box_2d: b5, bbox_pixel: [Math.round(b5[0]/2), Math.round(b5[1]/2), Math.round(b5[2]/2), Math.round(b5[3]/2)], bbox_normalized: b5, label: `${locName} Green Belt & Vegetation Canopy`, score: 0.91, bbox_world: toWorldBbox(b5) }
+        { box_2d: b5, bbox_pixel: [Math.round(b5[0]/2), Math.round(b5[1]/2), Math.round(b5[2]/2), Math.round(b5[3]/2)], bbox_normalized: b5, label: `${locName} Arterial Transport Grid & Highway Sector`, score: 0.91, bbox_world: toWorldBbox(b5) }
+      );
+    }
+
+    if (isGreenQuery) {
+      detections.push(
+        { box_2d: b5, bbox_pixel: [Math.round(b5[0]/2), Math.round(b5[1]/2), Math.round(b5[2]/2), Math.round(b5[3]/2)], bbox_normalized: b5, label: `${locName} Green Belt & Vegetation Canopy`, score: 0.93, bbox_world: toWorldBbox(b5) }
       );
     }
   }

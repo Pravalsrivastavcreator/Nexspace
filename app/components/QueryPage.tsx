@@ -114,7 +114,13 @@ export function normalizeBox(
 
   if (numeric.some((n) => isNaN(n))) return null;
 
-  let [xmin, ymin, xmax, ymax] = numeric;
+  // In computer vision (Grounding DINO, PaliGemma, YOLO, etc),
+  // standard bbox arrays are [ymin, xmin, ymax, xmax].
+  // If box or bbox_pixel/bbox_normalized is supplied:
+  let ymin = numeric[0];
+  let xmin = numeric[1];
+  let ymax = numeric[2];
+  let xmax = numeric[3];
 
   // Scale if normalized 0..1 float
   if (Math.max(xmin, ymin, xmax, ymax) <= 1.05) {
